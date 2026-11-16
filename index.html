@@ -2,24 +2,26 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <!-- スマホ表示の要：画面幅を端末サイズに合わせる -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>メシピタ - ゼロコスト・ダイニング決定アプリ</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <!-- PeerJS（ルームマッチモード用） -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
-<body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col items-center justify-center p-4">
+<body class="bg-zinc-950 text-zinc-100 min-h-dvh flex flex-col items-center justify-center p-4">
 
-    <div class="max-w-md w-full bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl">
-        <h1 class="text-2xl font-bold text-center mb-1 text-amber-500">🍽 メシピタ</h1>
-        <p id="app-status" class="text-xs text-zinc-400 mb-6 text-center">GPS & リアルマップデータ連携版</p>
+    <div class="max-w-md w-full bg-zinc-900 border border-zinc-800 rounded-2xl p-5 sm:p-6 shadow-xl">
+        <h1 class="text-3xl font-bold text-center mb-1 text-amber-500">🍽 メシピタ</h1>
+        <p id="app-status" class="text-xs sm:text-sm text-zinc-400 mb-6 text-center">GPS & リアルマップデータ連携版</p>
 
         <!-- ================= 0. モード選択トップ画面 ================= -->
         <div id="mode-select-section" class="space-y-4">
-            <button onclick="switchMode('solo')" class="w-full bg-amber-600 hover:bg-amber-500 font-bold py-3 rounded-xl transition cursor-pointer shadow-lg">
+            <button onclick="switchMode('solo')" class="w-full bg-amber-600 hover:bg-amber-500 active:bg-amber-700 font-bold py-4 text-base rounded-xl transition cursor-pointer shadow-lg">
                 👤 ひとりでサクッと決める
             </button>
-            <button onclick="switchMode('room')" class="w-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-bold py-3 rounded-xl transition cursor-pointer">
+            <button onclick="switchMode('room')" class="w-full bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 border border-zinc-700 font-bold py-4 text-base rounded-xl transition cursor-pointer">
                 👥 みんなでルームマッチ (P2P)
             </button>
         </div>
@@ -27,27 +29,28 @@
         <!-- ================= 1. ひとりで決めるモード ================= -->
         <div id="solo-section" class="hidden space-y-4">
             <div class="flex items-center justify-between mb-2">
-                <span class="text-sm font-bold text-amber-400">【ソロモード】</span>
-                <button onclick="backToHome()" class="text-xs text-zinc-400 hover:text-white underline">← 戻る</button>
+                <span class="text-base font-bold text-amber-400">【ソロモード】</span>
+                <button onclick="backToHome()" class="text-sm text-zinc-400 hover:text-white underline py-1 px-2">← 戻る</button>
             </div>
             <div>
                 <label class="block text-sm font-medium mb-1">あなたの名前</label>
-                <input type="text" id="solo-name" value="自分" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-amber-500">
+                <!-- text-base (16px) にすることでiPhoneタップ時の自動ズームを防止 -->
+                <input type="text" id="solo-name" value="自分" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-base focus:outline-none focus:border-amber-500">
             </div>
             <div>
                 <label class="block text-sm font-medium mb-1">予算上限 (円)</label>
-                <input type="number" id="solo-max-price" value="1200" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-amber-500">
+                <input type="number" id="solo-max-price" value="1200" inputmode="numeric" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-base focus:outline-none focus:border-amber-500">
             </div>
             <div>
-                <label class="block text-sm font-medium mb-1">気分タグ</label>
-                <div class="grid grid-cols-2 gap-2 text-xs">
-                    <label class="flex items-center gap-2 bg-zinc-800 p-2 rounded-lg cursor-pointer border border-zinc-700"><input type="checkbox" name="solo-tag" value="gatturi" checked> ガッツリ</label>
-                    <label class="flex items-center gap-2 bg-zinc-800 p-2 rounded-lg cursor-pointer border border-zinc-700"><input type="checkbox" name="solo-tag" value="bae"> 映え</label>
-                    <label class="flex items-center gap-2 bg-zinc-800 p-2 rounded-lg cursor-pointer border border-zinc-700"><input type="checkbox" name="solo-tag" value="bakuyasu" checked> 爆安</label>
-                    <label class="flex items-center gap-2 bg-zinc-800 p-2 rounded-lg cursor-pointer border border-zinc-700"><input type="checkbox" name="solo-tag" value="karai"> 辛い</label>
+                <label class="block text-sm font-medium mb-1.5">気分タグ</label>
+                <div class="grid grid-cols-2 gap-2.5 text-sm">
+                    <label class="flex items-center gap-2.5 bg-zinc-800 p-3 rounded-xl cursor-pointer border border-zinc-700 active:bg-zinc-700"><input type="checkbox" name="solo-tag" value="gatturi" class="w-4 h-4 accent-amber-500" checked> ガッツリ</label>
+                    <label class="flex items-center gap-2.5 bg-zinc-800 p-3 rounded-xl cursor-pointer border border-zinc-700 active:bg-zinc-700"><input type="checkbox" name="solo-tag" value="bae" class="w-4 h-4 accent-amber-500"> 映え</label>
+                    <label class="flex items-center gap-2.5 bg-zinc-800 p-3 rounded-xl cursor-pointer border border-zinc-700 active:bg-zinc-700"><input type="checkbox" name="solo-tag" value="bakuyasu" class="w-4 h-4 accent-amber-500" checked> 爆安</label>
+                    <label class="flex items-center gap-2.5 bg-zinc-800 p-3 rounded-xl cursor-pointer border border-zinc-700 active:bg-zinc-700"><input type="checkbox" name="solo-tag" value="karai" class="w-4 h-4 accent-amber-500"> 辛い</label>
                 </div>
             </div>
-            <button onclick="executeSoloMatching()" class="w-full bg-emerald-600 hover:bg-emerald-500 font-bold py-3 rounded-xl transition cursor-pointer mt-2">
+            <button onclick="executeSoloMatching()" class="w-full bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 font-bold py-4 text-base rounded-xl transition cursor-pointer mt-2 shadow-lg">
                 🎲 周辺の店からルーレットを回す！
             </button>
         </div>
@@ -55,40 +58,40 @@
         <!-- ================= 2. ルームマッチモード（P2P） ================= -->
         <div id="room-section" class="hidden space-y-4">
             <div class="flex items-center justify-between mb-2">
-                <span class="text-sm font-bold text-amber-400">【ルームマッチモード】</span>
-                <button onclick="backToHome()" class="text-xs text-zinc-400 hover:text-white underline">← 戻る</button>
+                <span class="text-base font-bold text-amber-400">【ルームマッチモード】</span>
+                <button onclick="backToHome()" class="text-sm text-zinc-400 hover:text-white underline py-1 px-2">← 戻る</button>
             </div>
             <div>
                 <label class="block text-sm font-medium mb-1">あなたの名前</label>
-                <input type="text" id="room-name" value="メンバー" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                <input type="text" id="room-name" value="メンバー" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-base focus:outline-none focus:border-indigo-500">
             </div>
-            <div id="room-status-text" class="text-sm text-zinc-300 text-center bg-zinc-800 p-3 rounded-xl">
+            <div id="room-status-text" class="text-sm text-zinc-300 text-center bg-zinc-800 p-3.5 rounded-xl break-all">
                 部屋を作成するか、友達の部屋IDを入力してください
             </div>
-            <button onclick="createRoom()" class="w-full bg-indigo-600 hover:bg-indigo-500 font-bold py-3 rounded-xl transition cursor-pointer">
+            <button onclick="createRoom()" class="w-full bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 font-bold py-3.5 text-base rounded-xl transition cursor-pointer">
                 部屋を作成する (Host)
             </button>
             <div class="flex gap-2">
-                <input type="text" id="room-id-input" placeholder="部屋IDを入力" class="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-indigo-500">
-                <button onclick="joinRoom()" class="bg-zinc-700 hover:bg-zinc-600 font-bold px-4 py-2 rounded-xl transition text-sm cursor-pointer">参加</button>
+                <input type="text" id="room-id-input" placeholder="部屋IDを入力" class="flex-1 min-w-0 bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-base focus:outline-none focus:border-indigo-500">
+                <button onclick="joinRoom()" class="bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 font-bold px-5 py-3 rounded-xl transition text-base shrink-0 cursor-pointer">参加</button>
             </div>
             
             <!-- 接続後の入力フォーム（最初は非表示） -->
             <div id="room-decision-area" class="hidden space-y-4 pt-4 border-t border-zinc-800">
                 <div>
                     <label class="block text-sm font-medium mb-1">あなたの予算上限 (円)</label>
-                    <input type="number" id="room-max-price" value="1200" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                    <input type="number" id="room-max-price" value="1200" inputmode="numeric" class="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-base focus:outline-none focus:border-indigo-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium mb-1">気分タグ</label>
-                    <div class="grid grid-cols-2 gap-2 text-xs">
-                        <label class="flex items-center gap-2 bg-zinc-800 p-2 rounded-lg cursor-pointer border border-zinc-700"><input type="checkbox" name="room-tag" value="gatturi" checked> ガッツリ</label>
-                        <label class="flex items-center gap-2 bg-zinc-800 p-2 rounded-lg cursor-pointer border border-zinc-700"><input type="checkbox" name="room-tag" value="bae"> 映え</label>
-                        <label class="flex items-center gap-2 bg-zinc-800 p-2 rounded-lg cursor-pointer border border-zinc-700"><input type="checkbox" name="room-tag" value="bakuyasu"> 爆安</label>
-                        <label class="flex items-center gap-2 bg-zinc-800 p-2 rounded-lg cursor-pointer border border-zinc-700"><input type="checkbox" name="room-tag" value="karai"> 辛い</label>
+                    <label class="block text-sm font-medium mb-1.5">気分タグ</label>
+                    <div class="grid grid-cols-2 gap-2.5 text-sm">
+                        <label class="flex items-center gap-2.5 bg-zinc-800 p-3 rounded-xl cursor-pointer border border-zinc-700 active:bg-zinc-700"><input type="checkbox" name="room-tag" value="gatturi" class="w-4 h-4 accent-indigo-500" checked> ガッツリ</label>
+                        <label class="flex items-center gap-2.5 bg-zinc-800 p-3 rounded-xl cursor-pointer border border-zinc-700 active:bg-zinc-700"><input type="checkbox" name="room-tag" value="bae" class="w-4 h-4 accent-indigo-500"> 映え</label>
+                        <label class="flex items-center gap-2.5 bg-zinc-800 p-3 rounded-xl cursor-pointer border border-zinc-700 active:bg-zinc-700"><input type="checkbox" name="room-tag" value="bakuyasu" class="w-4 h-4 accent-indigo-500"> 爆安</label>
+                        <label class="flex items-center gap-2.5 bg-zinc-800 p-3 rounded-xl cursor-pointer border border-zinc-700 active:bg-zinc-700"><input type="checkbox" name="room-tag" value="karai" class="w-4 h-4 accent-indigo-500"> 辛い</label>
                     </div>
                 </div>
-                <button onclick="submitRoomDecision()" class="w-full bg-emerald-600 hover:bg-emerald-500 font-bold py-3 rounded-xl transition cursor-pointer">
+                <button onclick="submitRoomDecision()" class="w-full bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 font-bold py-4 text-base rounded-xl transition cursor-pointer shadow-lg">
                     条件を送信して決定！
                 </button>
             </div>
@@ -96,22 +99,22 @@
 
         <!-- ================= 3. 結果・ルーレット演出セクション ================= -->
         <div id="result-section" class="hidden text-center space-y-4">
-            <div id="res-participants" class="text-xs text-indigo-400 font-semibold"></div>
-            <h2 id="res-store" class="text-xl font-bold text-amber-400"></h2>
-            <div id="res-menu" class="text-2xl font-extrabold bg-zinc-800 p-4 rounded-xl border border-zinc-700"></div>
+            <div id="res-participants" class="text-sm text-indigo-400 font-semibold"></div>
+            <h2 id="res-store" class="text-2xl font-bold text-amber-400"></h2>
+            <div id="res-menu" class="text-xl sm:text-2xl font-extrabold bg-zinc-800 p-5 rounded-xl border border-zinc-700"></div>
             
             <!-- Googleマップへのリンクボタン -->
-            <a id="res-map-link" href="#" target="_blank" class="block w-full bg-blue-600 hover:bg-blue-500 font-bold py-3 rounded-xl transition text-sm text-white text-center cursor-pointer">
+            <a id="res-map-link" href="#" target="_blank" class="block w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 font-bold py-4 rounded-xl transition text-base text-white text-center cursor-pointer shadow-lg">
                 📍 Googleマップでルート案内を見る
             </a>
 
-            <button onclick="backToHome()" class="w-full bg-zinc-700 hover:bg-zinc-600 font-bold py-2 rounded-xl transition text-sm cursor-pointer">
+            <button onclick="backToHome()" class="w-full bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-500 font-bold py-3 rounded-xl transition text-sm cursor-pointer">
                 トップに戻る
             </button>
         </div>
     </div>
 
-    <!-- JavaScriptロジック -->
+    <!-- JavaScriptロジック（ファイル名に合わせて変更してください） -->
     <script src="script.js"></script>
 </body>
 </html>

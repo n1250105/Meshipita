@@ -25,6 +25,27 @@ function backToHome() {
     hostData = null;
 }
 
+// 通信失敗時・タイムアウト時の予備データ
+const FALLBACK_RESTAURANTS = [
+    { id: 1, store: "駅前食堂（予備候補）", menu: "名物から揚げ定食", price: 850, tags: ["gatturi", "bakuyasu"] },
+    { id: 2, store: "カフェ・ド・パリ（予備候補）", menu: "アボカドチーズバーガー", price: 1100, tags: ["bae"] },
+    { id: 3, store: "激辛麻婆楼（予備候補）", menu: "極辛四川麻婆豆腐", price: 950, tags: ["gatturi", "karai"] },
+    { id: 4, store: "下町ダイニング（予備候補）", menu: "ミラノ風ドリア＆ピザ", price: 700, tags: ["bakuyasu"] },
+    { id: 5, store: "オシャレスパイス（予備候補）", menu: "特製スパイスカレー", price: 1100, tags: ["bae", "karai"] }
+];
+
+// タイムアウト付き fetch ヘルパー関数
+async function fetchWithTimeout(url, timeoutMs = 12000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const response = await fetch(url, { signal: controller.signal });
+        return response;
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 // ================= 1. 位置情報 ＆ リアルマップAPI（Overpass API）連携 =================
 async function fetchNearbyRestaurants() {
     return new Promise((resolve, reject) => {
@@ -37,49 +58,68 @@ async function fetchNearbyRestaurants() {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
 
-            // OpenStreetMapのOverpass API（無料・キー不要）を使って半径1km以内の飲食店を取得
+            // クエリを軽量化（検索範囲を800mにし、サーバー側タイムアウトを20秒に設定）
             const query = `
-                [out:json][timeout:15];
+                [out:json][timeout:20];
                 (
-                  node["amenity"~"restaurant|cafe|fast_food|bar"](around:1000,${lat},${lon});
+                  node["amenity"~"restaurant|cafe|fast_food|bar"](around:800,${lat},${lon});
                 );
                 out body;
             `;
-            const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+            const encodedQuery = encodeURIComponent(query);
 
-            try {
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error(`地図サーバーとの通信に失敗しました（ステータス: ${response.status}）`);
+            // 複数の無料サーバーを順番に試行（1つ目がタイムアウトしても2つ目へ自動切替）
+            const endpoints = [
+                `https://overpass.private.coffee/api/interpreter?data=${encodedQuery}`,
+                `https://overpass-api.de/api/interpreter?data=${encodedQuery}`
+            ];
+
+            let data = null;
+            for (const url of endpoints) {
+                try {
+                    const response = await fetchWithTimeout(url, 12000); // 1サーバーあたり最大12秒待機
+                    if (response.ok) {
+                        data = await response.json();
+                        break; // 取得成功したらループを抜ける
+                    }
+                    console.warn(`サーバー応答エラー (${response.status}): ${url}`);
+                } catch (e) {
+                    console.warn(`タイムアウトまたは通信エラーのため別サーバーを試行します: ${url}`, e);
                 }
-                const data = await response.json();
-
-                const restaurants = data.elements
-                    .filter(el => el.tags && el.tags.name)
-                    .map((el, index) => {
-                        const name = el.tags.name;
-                        const tags = [];
-                        if (name.includes("カフェ") || name.includes("Coffee") || name.includes("Starbucks") || name.includes("ドトール")) tags.push("bae");
-                        if (name.includes("ラーメン") || name.includes("食堂") || name.includes("弁当") || name.includes("うどん")) tags.push("gatturi");
-                        if (name.includes("丼") || name.includes("松屋") || name.includes("吉野家") || name.includes("すき家")) tags.push("bakuyasu");
-                        
-                        return {
-                            id: index + 1,
-                            store: name,
-                            menu: el.tags.cuisine ? `${el.tags.cuisine}系メニュー` : "おすすめ看板メニュー",
-                            price: Math.floor(Math.random() * 700) + 600,
-                            tags: tags.length > 0 ? tags : ["gatturi", "bakuyasu"]
-                        };
-                    });
-
-                if (restaurants.length === 0) {
-                    reject(new Error("現在地の周辺（半径1km以内）に飲食店データが見つかりませんでした。"));
-                } else {
-                    resolve(restaurants);
-                }
-            } catch (e) {
-                reject(new Error(`周辺店舗データの取得に失敗しました: ${e.message}`));
             }
+
+            // すべてのサーバーで取得に失敗した場合は予備データを返す
+            if (!data || !data.elements) {
+                console.warn("すべての地図サーバーがタイムアウトしたため、予備データを使用します。");
+                resolve(FALLBACK_RESTAURANTS);
+                return;
+            }
+
+            const restaurants = data.elements
+                .filter(el => el.tags && el.tags.name)
+                .map((el, index) => {
+                    const name = el.tags.name;
+                    const tags = [];
+                    if (name.includes("カフェ") || name.includes("Coffee") || name.includes("Starbucks") || name.includes("ドトール")) tags.push("bae");
+                    if (name.includes("ラーメン") || name.includes("食堂") || name.includes("弁当") || name.includes("うどん")) tags.push("gatturi");
+                    if (name.includes("丼") || name.includes("松屋") || name.includes("吉野家") || name.includes("すき家")) tags.push("bakuyasu");
+                    
+                    return {
+                        id: index + 1,
+                        store: name,
+                        menu: el.tags.cuisine ? `${el.tags.cuisine}系メニュー` : "おすすめ看板メニュー",
+                        price: Math.floor(Math.random() * 700) + 600,
+                        tags: tags.length > 0 ? tags : ["gatturi", "bakuyasu"]
+                    };
+                });
+
+            if (restaurants.length === 0) {
+                console.warn("周辺に店舗データが見つからなかったため、予備データを使用します。");
+                resolve(FALLBACK_RESTAURANTS);
+            } else {
+                resolve(restaurants);
+            }
+
         }, (error) => {
             let errorMsg = "位置情報を取得できませんでした。";
             if (error.code === error.PERMISSION_DENIED) {
@@ -90,7 +130,11 @@ async function fetchNearbyRestaurants() {
                 errorMsg = "位置情報の取得がタイムアウトしました。再度お試しください。";
             }
             reject(new Error(errorMsg));
-        }, { timeout: 10000 });
+        }, {
+            enableHighAccuracy: false, // ネットワーク測位を許可して高速化（タイムアウト防止）
+            timeout: 15000,            // GPSのタイムアウトを15秒に延長
+            maximumAge: 60000          // 1分以内の位置情報キャッシュがあれば再利用
+        });
     });
 }
 
@@ -116,7 +160,7 @@ async function executeSoloMatching() {
         document.getElementById('solo-section').classList.add('hidden');
         showRouletteAnimation(`${name}さんのチョイス`, result.store, result.menu);
     } catch (err) {
-        statusEl.innerText = "⚠️ データ取得エラー";
+        statusEl.innerText = "⚠️ 位置情報エラー";
         alert(`エラー: ${err.message}`);
     }
 }
@@ -151,7 +195,6 @@ function joinRoom() {
 function setupConnection() {
     conn.on('data', async (data) => {
         if (data.error) {
-            // ホスト側でエラーが起きた場合、ゲスト側にもエラーを通知
             alert(`ホスト側でエラーが発生しました:\n${data.error}`);
             document.getElementById('room-status-text').innerText = "⚠️ データの取得に失敗しました。再度お試しください。";
             return;
@@ -195,7 +238,6 @@ async function submitRoomDecision() {
             } catch (err) {
                 statusEl.innerText = "⚠️ データ取得エラー";
                 alert(`エラー: ${err.message}`);
-                // ゲスト側にもエラーが起きたことを伝える
                 conn.send({ error: err.message });
             }
         }
